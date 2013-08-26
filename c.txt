@@ -1,0 +1,815 @@
+已经n次倒在c语言面试的问题上，总结了一下，是由于基础知识不扎实。痛定思痛，决定好好努力！
+
+1.引言
+
+　　本文的写作目的并不在于提供C/C++程序员求职面试指导，而旨在从技术上分析面试题的内涵。文中的大多数面试题来自各大论坛，部分试题解答也参考了网友的意见。
+
+　　许多面试题看似简单，却需要深厚的基本功才能给出完美的解答。企业要求面试者写一个最简单的strcpy函数都可看出面试者在技术上究竟达到了怎样的程度，我们能真正写好一个strcpy函数吗？我们都觉得自己能，可是我们写出的strcpy很可能只能拿到10分中的2分。读者可从本文看到strcpy 函数从2分到10分解答的例子，看看自己属于什么样的层次。此外，还有一些面试题考查面试者敏捷的思维能力。
+
+　　分析这些面试题，本身包含很强的趣味性；而作为一名研发人员，通过对这些面试题的深入剖析则可进一步增强自身的内功。
+
+2.找错题
+
+　　试题1：
+
+void test1()
+{
+　char string[10];
+　char* str1 = "0123456789";
+　strcpy( string, str1 );
+}
+
+　　试题2：
+
+void test2()
+{
+　char string[10], str1[10];
+　int i;
+　for(i=0; i＜10; i++)
+　{
+　　str1[i] = 'a';
+　}
+　strcpy( string, str1 );
+}
+
+　　试题3：
+
+void test3(char* str1)
+{
+　char string[10];
+　if( strlen( str1 ) ＜= 10 )
+　{
+　　strcpy( string, str1 );
+　}
+}
+
+　　解答：
+
+　　试题1字符串str1需要11个字节才能存放下（包括末尾的’\0’），而string只有10个字节的空间，strcpy会导致数组越界；
+
+　　对试题2，如果面试者指出字符数组str1不能在数组内结束可以给3分；如果面试者指出strcpy(string, str1)调用使得从str1内存起复制到string内存起所复制的字节数具有不确定性可以给7分，在此基础上指出库函数strcpy工作方式的给10 分；
+
+　　对试题3，if(strlen(str1) ＜= 10)应改为if(strlen(str1) ＜ 10)，因为strlen的结果未统计’\0’所占用的1个字节。
+
+　　剖析：
+
+　　考查对基本功的掌握：
+
+　　(1)字符串以’\0’结尾；
+
+　　(2)对数组越界把握的敏感度；
+
+　　(3)库函数strcpy的工作方式，如果编写一个标准strcpy函数的总分值为10，下面给出几个不同得分的答案：
+
+　　2分
+
+void strcpy( char *strDest, char *strSrc )
+{
+　 while( (*strDest++ = * strSrc++) != ‘\0’ );
+}
+
+　　4分
+
+void strcpy( char *strDest, const char *strSrc )
+//将源字符串加const，表明其为输入参数，加2分
+{
+　 while( (*strDest++ = * strSrc++) != ‘\0’ );
+}
+
+　　7分
+
+void strcpy(char *strDest, const char *strSrc)
+{
+　//对源地址和目的地址加非0断言，加3分
+　assert( (strDest != NULL) && (strSrc != NULL) );
+　while( (*strDest++ = * strSrc++) != ‘\0’ );
+}
+
+　　10分
+
+//为了实现链式操作，将目的地址返回，加3分！
+
+char * strcpy( char *strDest, const char *strSrc )
+{
+　assert( (strDest != NULL) && (strSrc != NULL) );
+　char *address = strDest;
+　while( (*strDest++ = * strSrc++) != ‘\0’ );
+　　return address;
+}
+
+　　从2分到10分的几个答案我们可以清楚的看到，小小的strcpy竟然暗藏着这么多玄机，真不是盖的！需要多么扎实的基本功才能写一个完美的strcpy啊！
+
+　　(4)对strlen的掌握，它没有包括字符串末尾的'\0'。
+
+　　读者看了不同分值的strcpy版本，应该也可以写出一个10分的strlen函数了，完美的版本为： 
+
+int strlen( const char *str ) //输入参数const
+
+{
+　assert( strt != NULL ); //断言字符串地址非0
+　int len;
+　while( (*str++) != '\0' )
+　{
+　　len++;
+　}
+　return len;
+}
+
+　　试题4：
+
+void GetMemory( char *p )
+{
+　p = (char *) malloc( 100 );
+}
+
+void Test( void )
+{
+　char *str = NULL;
+　GetMemory( str );
+　strcpy( str, "hello world" );
+　printf( str );
+}
+
+　　试题5：
+
+char *GetMemory( void )
+{
+　char p[] = "hello world";
+　return p;
+}
+
+void Test( void )
+{
+　char *str = NULL;
+　str = GetMemory();
+　printf( str );
+}
+
+　　试题6：
+
+void GetMemory( char **p, int num )
+{
+　*p = (char *) malloc( num );
+}
+
+void Test( void )
+{
+　char *str = NULL;
+　GetMemory( &str, 100 );
+　strcpy( str, "hello" );
+　printf( str );
+}
+
+　　试题7：
+
+void Test( void )
+{
+　char *str = (char *) malloc( 100 );
+　strcpy( str, "hello" );
+　free( str );
+　... //省略的其它语句
+}
+
+　　解答：
+
+　　试题4传入中GetMemory( char *p )函数的形参为字符串指针，在函数内部修改形参并不能真正的改变传入形参的值（这个说法不准确，看高质量C一书），执行完
+
+char *str = NULL;
+GetMemory( str );
+
+　　后的str仍然为NULL；
+
+　　试题5中
+
+char p[] = "hello world";
+return p;
+
+　　的p[]数组为函数内的局部自动变量，在函数返回后，内存已经被释放。这是许多程序员常犯的错误，其根源在于不理解变量的生存期。
+
+　　试题6的GetMemory避免了试题4的问题，传入GetMemory的参数为字符串指针的指针，但是在GetMemory中执行申请内存及赋值语句
+
+*p = (char *) malloc( num );
+
+　　后未判断内存是否申请成功，应加上：
+
+if ( *p == NULL )
+{
+　...//进行申请内存失败处理
+}
+
+　　试题7存在与试题6同样的问题，在执行
+
+char *str = (char *) malloc(100);
+
+　　后未进行内存是否申请成功的判断；另外，在free(str)后未置str为空，导致可能变成一个“野”指针，应加上：
+
+str = NULL;
+
+　　试题6的Test函数中也未对malloc的内存进行释放。
+
+　　剖析：
+
+　　试题4～7考查面试者对内存操作的理解程度，基本功扎实的面试者一般都能正确的回答其中50~60的错误。但是要完全解答正确，却也绝非易事。
+
+　　对内存操作的考查主要集中在：
+
+　　（1）指针的理解；
+
+　　（2）变量的生存期及作用范围；
+
+　　（3）良好的动态内存申请和释放习惯。
+
+　　再看看下面的一段程序有什么错误：
+
+swap( int* p1,int* p2 )
+{
+　int *p;
+　*p = *p1;
+　*p1 = *p2;
+　*p2 = *p;
+}
+
+　　在swap函数中，p是一个“野”指针，有可能指向系统区，导致程序运行的崩溃。在VC++中DEBUG运行时提示错误“Access Violation”。该程序应该改为：
+
+swap( int* p1,int* p2 )
+{
+　int p;
+　p = *p1;
+　*p1 = *p2;
+　*p2 = p;
+}
+
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+3.内功题
+
+　　试题1：分别给出BOOL，int，float，指针变量 与“零值”比较的 if 语句（假设变量名为var）
+
+　　解答：
+
+　　　BOOL型变量：if(!var)
+
+　　　int型变量： if(var==0)
+
+　　　float型变量：
+
+　　　const float EPSINON = 0.00001;
+
+　　　if ((x ＞= - EPSINON) && (x ＜= EPSINON)
+
+　　　指针变量：　　if(var==NULL)
+
+　　剖析：
+
+　　考查对0值判断的“内功”，BOOL型变量的0判断完全可以写成if(var==0)，而int型变量也可以写成if(!var)，指针变量的判断也可以写成if(!var)，上述写法虽然程序都能正确运行，但是未能清晰地表达程序的意思。
+
+　　一般的，如果想让if判断一个变量的“真”、“假”，应直接使用if(var)、if(!var)，表明其为“逻辑”判断；如果用if判断一个数值型变量(short、int、long等)，应该用if(var==0)，表明是与0进行“数值”上的比较；而判断指针则适宜用if(var==NULL)，这是一种很好的编程习惯。
+
+　　浮点型变量并不精确，所以不可将float变量用“==”或“！=”与数字比较，应该设法转化成“＞=”或“＜=”形式。如果写成if (x == 0.0)，则判为错，得0分。
+
+　　试题2：以下为Windows NT下的32位C++程序，请计算sizeof的值
+
+void Func ( char str[100] )
+{
+　sizeof( str ) = ?
+}
+
+void *p = malloc( 100 );
+sizeof ( p ) = ?
+
+　　解答：
+
+sizeof( str ) = 4
+sizeof ( p ) = 4
+
+　　剖析：
+
+　　Func ( char str[100] )函数中数组名作为函数形参时，在函数体内，数组名失去了本身的内涵，仅仅只是一个指针；在失去其内涵的同时，它还失去了其常量特性，可以作自增、自减等操作，可以被修改。
+
+　　数组名的本质如下：
+
+　　（1）数组名指代一种数据结构，这种数据结构就是数组；
+
+　　例如：
+
+char str[10];
+cout ＜＜ sizeof(str) ＜＜ endl;
+
+　　输出结果为10，str指代数据结构char[10]。
+
+　　（2）数组名可以转换为指向其指代实体的指针，而且是一个指针常量，不能作自增、自减等操作，不能被修改；
+
+char str[10];
+str++; //编译出错，提示str不是左值　
+
+　　（3）数组名作为函数形参时，沦为普通指针。
+
+　　Windows NT 32位平台下，指针的长度（占用内存的大小）为4字节，故sizeof( str ) 、sizeof ( p ) 都为4。
+
+　　试题3：写一个“标准”宏MIN，这个宏输入两个参数并返回较小的一个。另外，当你写下面的代码时会发生什么事
+
+least = MIN(*p++, b);
+
+　　解答：
+
+#define MIN(A,B) ((A) ＜= (B) ? (A) : (B))
+
+　　MIN(*p++, b)会产生宏的副作用
+
+　　剖析：
+
+　　这个面试题主要考查面试者对宏定义的使用，宏定义可以实现类似于函数的功能，但是它终归不是函数，而宏定义中括弧中的“参数”也不是真的参数，在宏展开的时候对“参数”进行的是一对一的替换。
+
+　　程序员对宏定义的使用要非常小心，特别要注意两个问题：
+
+　　（1）谨慎地将宏定义中的“参数”和整个宏用用括弧括起来。所以，严格地讲，下述解答：
+
+#define MIN(A,B) (A) ＜= (B) ? (A) : (B)
+#define MIN(A,B) (A ＜= B ? A : B )
+
+　　都应判0分；
+
+　　（2）防止宏的副作用。
+
+　　宏定义#define MIN(A,B) ((A) ＜= (B) ? (A) : (B))对MIN(*p++, b)的作用结果是：
+
+((*p++) ＜= (b) ? (*p++) : (*p++))
+
+　　这个表达式会产生副作用，指针p会作三次++自增操作。
+
+　　除此之外，另一个应该判0分的解答是：
+
+#define MIN(A,B) ((A) ＜= (B) ? (A) : (B));
+
+　　这个解答在宏定义的后面加“;”，显示编写者对宏的概念模糊不清，只能被无情地判0分并被面试官淘汰。
+
+　　试题4：为什么标准头文件都有类似以下的结构？
+
+#ifndef __INCvxWorksh
+#define __INCvxWorksh
+#ifdef __cplusplus
+
+extern "C" {
+#endif
+/*...*/
+#ifdef __cplusplus
+}
+
+#endif
+#endif /* __INCvxWorksh */
+
+　　解答：
+
+　　头文件中的编译宏
+
+#ifndef　__INCvxWorksh
+#define　__INCvxWorksh
+#endif
+
+　　的作用是防止被重复引用。
+
+　　作为一种面向对象的语言，C++支持函数重载，而过程式语言C则不支持。函数被C++编译后在symbol库中的名字与C语言的不同。例如，假设某个函数的原型为：
+
+void foo(int x, int y);
+
+　　该函数被C编译器编译后在symbol库中的名字为_foo，而C++编译器则会产生像_foo_int_int之类的名字。_foo_int_int这样的名字包含了函数名和函数参数数量及类型信息，C++就是考这种机制来实现函数重载的。
+
+　　为了实现C和C++的混合编程，C++提供了C连接交换指定符号extern "C"来解决名字匹配问题，函数声明前加上extern "C"后，则编译器就会按照C语言的方式将该函数编译为_foo，这样C语言中就可以调用C++的函数了。
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+　试题5：编写一个函数，作用是把一个char组成的字符串循环右移n个。比如原来是“abcdefghi”如果n=2，移位后应该是“hiabcdefgh”
+
+　　函数头是这样的：
+
+//pStr是指向以'\0'结尾的字符串的指针
+//steps是要求移动的n
+
+void LoopMove ( char * pStr, int steps )
+{
+　//请填充...
+}
+
+　　解答：
+
+　　正确解答1：
+
+void LoopMove ( char *pStr, int steps )
+{
+　int n = strlen( pStr ) - steps;
+　char tmp[MAX_LEN];
+　strcpy ( tmp, pStr + n );
+　strcpy ( tmp + steps, pStr);
+　*( tmp + strlen ( pStr ) ) = '\0';
+　strcpy( pStr, tmp );
+}
+
+　　正确解答2：
+
+void LoopMove ( char *pStr, int steps )
+{
+　int n = strlen( pStr ) - steps;
+　char tmp[MAX_LEN];
+　memcpy( tmp, pStr + n, steps );
+　memcpy(pStr + steps, pStr, n );
+　memcpy(pStr, tmp, steps );
+}
+
+　　剖析：
+
+　　这个试题主要考查面试者对标准库函数的熟练程度，在需要的时候引用库函数可以很大程度上简化程序编写的工作量。
+
+　　最频繁被使用的库函数包括：
+
+　　（1） strcpy
+
+　　（2） memcpy
+
+　　（3） memset
+
+
+Pre-interview Questions 
+
+These are questions to ask in a phone interview. The idea is to qualify a person before bringing them in for a face-to-face session. 
+
+
+What is a virtual method? A pure virtual method? When would you use/not use a virtual destructor?
+
+What is the difference between a pointer and a reference?
+
+A reference must always refer to some object and, therefore, must always be initialized; pointers do not have such restrictions. A pointer can be reassigned to point to different objects while a reference always refers to an object with which it was initialized. 
+
+What is the difference between new/delete and malloc/free?
+
+Malloc/free do not know about constructors and destructors. New and delete create and destroy objects, while malloc and free allocate and deallocate memory. 
+
+What does const mean?
+
+What methods should every c++ class define and why?
+
+What does main return?
+
+Explain what the header for a simple class looks like.
+
+How do you handle failure in a constructor? 
+
+According to Bjarne Stroustup, designer of the C++ language, you handle failures in a constructor by throwing an exception. See here for more details, including a link to his document on exception safety and the standard library: http://www.arkestra.demon.co.uk/errors_cpp.html#acquire_resources_in_constructors 
+
+ 
+
+ 
+
+ 
+
+--------------------------------------------------------------------------------
+
+Junior Questions 
+
+ 
+
+
+What is the difference between C and C++? Would you prefer to use one over the other?
+
+C is based on structured programming whereas C++ supports the object-oriented programming paradigm. Due to the advantages inherent in object-oriented programs such as modularity and reuse, C++ is preferred. However almost anything that can be built using C++ can also be built using C. 
+
+ 
+
+Explain operator precendence.
+
+Operator precedence is the order in which operators are evaluated in a compound expression. For example, what is the result of the following expression? 
+
+6 + 3 * 4 / 2 + 2 
+
+Here is a compound expression with an insidious error. 
+while ( ch = nextChar() != '\0' ) 
+
+The programmer's intention is to assign ch to the next character then test that character to see whether it is null. Since the inequality operator has higher precendence than the assignment operator, the real result is that the next character is compared to null and ch is assigned the boolean result of the test (i.e. 0 or 1). 
+
+ 
+
+What are the access privileges in C++? What is the default access level?
+
+The access privileges in C++ are private, public and protected. The default access level assigned to members of a class is private. Private members of a class are accessible only within the class and by friends of the class. Protected members are accessible by the class itself and it's sub-classes. Public members of a class can be accessed by anyone. 
+
+ 
+
+What is data encapsulation?
+
+Data Encapsulation is also known as data hiding. The most important advantage of encapsulation is that it lets the programmer create an object and then provide an interface to the object that other objects can use to call the methods provided by the object. The programmer can change the internal workings of an object but this transparent to other interfacing programs as long as the interface remains unchanged. 
+
+ 
+
+What is inheritance?
+
+Inheritance is a mechanism through which a subclass inherits the properties and behavior of its superclass; the subclass has a ISA relationship with the superclass. For example Vehicle can be a superclass and Car can be a subclass derived from Vehicle. In this case a Car ISA Vehicle. The superclass 'is not a' subclass as the subclass is more specialized and may contain additional members as compared to the superclass. The greatest advantage of inheritance is that it promotes generic design and code reuse. 
+
+ 
+
+What is multiple inheritance? What are its advantages and disadvantages?
+
+Multiple Inheritance is the process whereby a sub-class can be derived from more than one super class. The advantage of multiple inheritance is that it allows a class to inherit the functionality of more than one base class thus allowing for modeling of complex relationships. The disadvantage of multiple inheritance is that it can lead to a lot of confusion when two base classes implement a method with the same name. 
+
+ 
+
+What is polymorphism?
+
+Polymorphism refers to the ability to have more than one method with the same signature in an inheritance hierarchy. The correct method is invoked at run-time based on the context (object) on which the method is invoked. Polymorphism allows for a generic use of method names while providing specialized implementations for them. 
+
+ 
+
+What do the keyword static and const signify?
+
+When a class member is declared to be of a static type, it means that the member is not an instance variable but a class variable. Such a member is accessed using Classname.Membername (as opposed to Object.Membername). Const is a keyword used in C++ to specify that an object's value cannot be changed. 
+
+ 
+
+What is a static member of a class?
+
+Static data members exist once for the entire class, as opposed to non-static data members, which exist individually in each instance of a class. 
+
+ 
+
+How do you access the static member of a class?
+
+<ClassName>::<StaticMemberName>. 
+
+ 
+
+What feature of C++ would you use if you wanted to design a member function that guarantees to leave this object unchanged?
+
+It is const as in: int MyFunc? (int test) const; 
+
+ 
+
+What is the difference between const char *myPointer; and char *const myPointer;?
+
+
+const char *myPointer; is a non-constant pointer to constant data; while char *const myPointer; is a constant pointer to non-constant data. 
+
+ 
+
+How is memory allocated/deallocated in C? How about C++?
+
+Memory is allocated in C using malloc() and freed using free(). In C++ the new() operator is used to allocate memory to an object and the delete() operator is used to free the memory taken up by an object. 
+
+ 
+
+What is the difference between public, protected, and private members of a class?
+
+Private members are accessible only by members and friends of the class. Protected members are accessible by members and friends of the class and by members and friends of derived classes. Public members are accessible by everyone. 
+
+ 
+
+How do you link a C++ program to C functions?
+
+By using the extern "C" linkage specification around the C function declarations. 
+
+The candidate should know about mangled function names and type-safe linkages. They should explain how the extern "C" linkage specification statement turns that feature off during compilation so that the linker properly links function calls to C functions. 
+
+ 
+
+What does extern "C" int func(int *, Foo) accomplish?
+
+
+It will turn off "name mangling" for func so that one can link to code compiled by a C compiler. 
+
+ 
+
+Why do C++ compilers need name mangling?
+
+
+Name mangling is the rule according to which C++ changes function names into function signatures before invoking the linker. Mangled names are used by the linker to differentiate between different functions with the same name. 
+
+ 
+
+What is function's signature?
+
+
+function's signature is its name plus the number and types of the parameters it accepts. 
+
+ 
+
+What are the differences between a C++ struct and C++ class?
+
+The default member and base class access specifiers are different. 
+
+The C++ struct has all the features of the class. The only differences are that a struct defaults to public member access and public base class inheritance, and a class defaults to the private access specifier and private base class inheritance. 
+
+ 
+
+What is the difference between function overloading and function overriding?
+
+Overloading is a method that allows defining multiple member functions with the same name but different signatures. The compiler will pick the correct function based on the signature. Overriding is a method that allows the derived class to redefine the behavior of member functions which the derived class inherits from a base class. The signatures of both base class member function and derived class member function are the same; however, the implementation and, therefore, the behavior will differ. 
+
+ 
+
+Can you overload a function based only on whether a parameter is a value or a reference?
+
+No. Passing by value and by reference looks identical to the caller. 
+
+ 
+
+Can derived class override some but not all of a set of overloaded virtual member functions inherited from the base class?
+
+Compiler will allow this, but it is a bad practice since overridden member functions will hide all of the inherited overloads from the base class. You should really override all of them. 
+
+ 
+
+What is the difference between assignment and initialization in C++?
+
+Assignment changes the value of the object that has already been constructed. Initialization constructs a new object and gives it a value at the same time. 
+
+ 
+
+Name two cases where you MUST use initialization list as opposed to assignment in constructors.
+
+
+Both non-static const data members and reference data members cannot be assigned values; instead, you should use initialization list to initialize them. 
+
+ 
+
+When are copy constructors called?
+
+
+Copy constructors are called in three cases: when a function returns an object of that class by value, when the object of that class is passed by value as an argument to a function, and, finally, when you construct an object based on another object of the same class (Circle c1=c2;). 
+
+ 
+
+ 
+
+
+--------------------------------------------------------------------------------
+
+Medior Questions 
+
+
+What is the difference between delete and delete[]?
+
+delete deletes one object; delete[] deletes an array of objects. 
+
+ 
+
+What is the difference between non-virtual and virtual functions?
+
+The behavior of a non-virtual function is known at compile time while the behavior of a virtual function is not known until the run time. 
+
+ 
+
+What is a pure virtual function?
+
+A pure virtual function is a function declared in a base class that has no definition relative to the base. 
+
+ 
+
+How do you know that your class needs a virtual destructor?
+
+If your class has at least one virtual function, you should make a destructor for this class virtual. This will allow you to delete a dynamic object through a pointer to a base class object. If the destructor is non-virtual, then the wrong destructor will be invoked during deletion of the dynamic object. 
+
+ 
+
+What is an abstract base class?
+
+A class that has one or more pure virtual functions. 
+
+ 
+
+What is your reaction to this line of code?
+
+delete this; 
+
+It's not a good practice. 
+
+A good programmer will insist that the statement is never to be used if the class is to be used by other programmers and instantiated as static, extern, or automatic objects. That much should be obvious. 
+
+The code has two built-in pitfalls. First, if it executes in a member function for an extern, static, or automatic object, the program will probably crash as soon as the delete statement executes. Second, when an object commits suicide this way, the using program might not know about its demise. As far as the instantiating program is concerned, the object remains in scope and continues to exist even though the object did itself in. 
+
+ 
+
+What is a default constructor?
+
+A constructor that has no arguments or one where all the arguments have default argument values. 
+
+The candicate should know that if you don't code a default constructor, the compiler provides one if there are no other constructors. If you are going to instantiate an array of objects of the class, the class must have a default constructor. 
+
+ 
+
+Why do you have to provide your own copy constructor and assignment operator for classes with dynamically allocated memory?
+
+
+If you don't, the compiler will supply and execute the default constructor and the assignment operator, but they will not do the job correctly. The default assignment operator does memberwise assignment and the default copy constructor does memberwise copy. In both cases you will only assign and manipulate pointers to dynamic memory, which will lead to memory leaks and other abnormalities. You should write your own assignment operator and copy constructor, which would copy the pointer to memory so that each object has its own copy. 
+
+ 
+
+Explain the ISA and HASA class relationships. How would you implement each in a class design?
+
+A specialized class "is a" specialization of another class and, therefore, has the ISA relationship with the other class. An Employee ISA Person. This relationship is best implemented with inheritance. Employee is derived from Person. A class may have an instance of another class. For example, an Employee "has a" Salary, therefore the Employee class has the HASA relationship with the Salary class. This relationship is best implemented by embedding an object of the Salary class in the Employee class. 
+
+ 
+
+What is the difference between a shallow copy and a deep copy?
+
+A shallow copy simply creates a new object and inserts in it references to the members of the original object. A deep copy constructs a new object and then creates in it copies of each of the members of the original object. 
+
+ 
+
+What is the difference between MyClass p; and MyClass p();?
+
+MyClass p; creates an instance of class MyClass by calling a constructor for MyClass. MyClass p(); declares function p which takes no parameters and returns an object of class MyClass by value. 
+
+ 
+
+What issue do auto_ptr objects address?
+
+
+If you use auto_ptr objects you would not have to be concerned with heap objects not being deleted even if the exception is thrown. 
+
+ 
+
+What functions does C++ silently write and call?
+
+
+Constructors, destructors, copy constructors, assignment operators, and address-of operators. 
+
+ 
+
+Does the compiler guarantee that initializers will be executed in the same order as they appear on the initialization list?
+
+
+No. C++ guarantees that base class subobjects and member objects will be destroyed in the opposite order from which they were constructed. This means that initializers are executed in the order, which supports the above-mentioned guarantee. 
+
+ 
+
+ 
+
+
+--------------------------------------------------------------------------------
+
+Senior Questions 
+
+
+Who is Brad Cox?
+
+He authored Object-oriented Programming, An Evolutionary Approach, a book that is generally credited with launching today's industry-wide enthusiasm for object technology. 
+
+ 
+
+Who is Grady Booch?
+
+Grady Booch has been an object- based/oriented advocate for some time. His latest notations are often referred to as simply the "Booch" method or notation. 
+
+ 
+
+How are prefix and postfix versions of operator++() differentiated?
+
+
+The postfix version of operator++() has a dummy parameter of type int. The prefix version does not have dummy parameter. 
+
+ 
+
+Can you think of a situation where your program would crash without reaching the breakpoint which you set at the beginning of main()?
+
+
+C++ allows for dynamic initialization of global variables before main() is invoked. It is possible that initialization of global will invoke some function. If this function crashes the crash will occur before main() is entered. 
+
+ 
+
+Is there any problem with the following:
+
+char *a = NULL;
+char& p = *a;?
+
+
+The result is undefined. You should never do this. A reference must always refer to some object. 
+
+ 
+
+ 
+
+ 
+
+--------------------------------------------------------------------------------
+
+Advanced Questions 
+
+ 
+
+
+What is a mutable member?
+
+One that can be modified by the class even when the object of the class, or the member function doing the modification, is const.
+
+ 
+
+
+Why were the templates introduced?
+
+Many data structures and algorithms can be defined independently of the type of data they work with. You can increase the amount of shared code by separating data-dependent portions from data-independent portions, and templates were introduced to help you do that. 
+
+ 
+
+What is the difference between static_cast<RWTime>(*this) += 5; and static_cast<RWTime&>(*this) += 5;?
+
+If you cast *this to be an RWTime object, the copy constructor for RWTime will be called and the new object will be the target of the assignment, *this will remain unchanged. Hardly what you want. The second instance actually increments this by 5. 
+
+
+
